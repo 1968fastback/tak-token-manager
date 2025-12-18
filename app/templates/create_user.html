@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="create-user-section">
+    <h1>➕ Create New User</h1>
+    
+    <form id="createUserForm" class="user-form">
+        <div class="form-group">
+            <label for="username">👤 Username *</label>
+            <input type="text" id="username" name="username" required 
+                   placeholder="john_doe" pattern="[a-zA-Z0-9_-]+"
+                   title="Only letters, numbers, underscore and hyphen allowed">
+            <small>Only alphanumeric, underscore, and hyphen</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">📧 Email *</label>
+            <input type="email" id="email" name="email" required 
+                   placeholder="user@example.com">
+            <small>Enrollment credentials will be sent here</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="group_name">👥 Group</label>
+            <select id="group_name" name="group_name">
+                <option value="__ANON__">__ANON__ (Default)</option>
+                <option value="TeamAlpha">Team Alpha</option>
+                <option value="TeamBravo">Team Bravo</option>
+                <option value="Command">Command</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <input type="text" id="custom_group" name="custom_group" 
+                   style="display:none;" placeholder="Enter group name">
+        </div>
+        
+        <div class="form-group">
+            <label for="expiry_minutes">⏰ Token Expiry</label>
+            <select id="expiry_minutes" name="expiry_minutes">
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="120" selected>2 hours (default)</option>
+                <option value="240">4 hours</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">📝 Notes (Optional)</label>
+            <textarea id="notes" name="notes" rows="3" 
+                      placeholder="Additional notes about this user..."></textarea>
+        </div>
+        
+        <div class="form-group checkbox-group">
+            <label>
+                <input type="checkbox" id="send_email" name="send_email" checked>
+                <span>Send enrollment email automatically</span>
+            </label>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                ✅ Create User & Generate Token
+            </button>
+            <a href="/" class="btn btn-secondary btn-lg">
+                ❌ Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<div id="resultModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>✅ User Created Successfully!</h2>
+        <div id="modalBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('group_name').addEventListener('change', function() {
+    const customInput = document.getElementById('custom_group');
+    customInput.style.display = this.value === 'custom' ? 'block' : 'none';
+    if (this.value === 'custom') customInput.focus();
+});
+
+document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    let groupName = formData.get('group_name');
+    
+    if (groupName === 'custom') {
+        groupName = formData.get('custom_group');
+        if (!groupName) {
+            alert('Please enter a custom group name');
+            return;
+        }
+    }
+    
+    const data = {
+        username: formData.get('username'),
+        email: formData.get('email'),
+        group_name: groupName,
+        expiry_minutes: parseInt(formData.get('expiry_minutes')),
+        notes: formData.get('notes'),
+        send_email: formData.get('send_email') === 'on'
+    };
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Creating...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/tokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showSuccessModal(result.token_data);
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error creating user: ' + error);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+
+function showSuccessModal(tokenData) {
+    const modal = document.getElementById('resultModal');
+    const modalBody = document.getElementById('modalBody');
+    
+    modalBody.innerHTML = `
+        <div class="success-details">
+            <p><strong>Username:</strong> ${tokenData.username}</p>
+            <p><strong>Token:</strong> <code>${tokenData.token}</code></p>
+            <p><strong>Expires:</strong> ${new Date(tokenData.expires_at).toLocaleString()}</p>
+            <p><strong>Group:</strong> ${tokenData.group_name}</p>
+            
+            <div class="action-buttons">
+                <a href="/user/${tokenData.username}" class="btn btn-primary">
+                    📱 View QR Code
+                </a>
+                <a href="/api/tokens/${tokenData.username}/package" class="btn btn-secondary">
+                    📦 Download Package
+                </a>
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+    
+    document.querySelector('.close').onclick = () => {
+        modal.style.display = 'none';
+        window.location.href = '/';
+    };
+}
+</script>
+{% endblock %}
