@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="user-detail-section">
+    <h1>👤 {{ token.username }}</h1>
+    
+    <div class="detail-grid">
+        <div class="detail-card">
+            <h2>ℹ️ Token Information</h2>
+            <table class="info-table">
+                <tr>
+                    <td><strong>Username:</strong></td>
+                    <td>{{ token.username }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Token:</strong></td>
+                    <td><code>{{ token.token }}</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Group:</strong></td>
+                    <td>{{ token.group_name }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Created:</strong></td>
+                    <td>{{ token.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Expires:</strong></td>
+                    <td>{{ token.expires_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Status:</strong></td>
+                    <td>
+                        {% if token.revoked %}
+                            <span class="badge badge-danger">Revoked</span>
+                        {% elif token.enrolled %}
+                            <span class="badge badge-success">Enrolled</span>
+                        {% elif token.is_expired() %}
+                            <span class="badge badge-danger">Expired</span>
+                        {% else %}
+                            <span class="badge badge-warning">Active</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="detail-card qr-section">
+            <h2>📱 QR Code for Enrollment</h2>
+            <div class="qr-container">
+                <img src="/api/tokens/{{ token.username }}/qr" alt="QR Code" class="qr-image">
+            </div>
+            <p class="qr-instructions">
+                Scan this QR code with your phone to download the enrollment package
+            </p>
+        </div>
+    </div>
+    
+    <div class="enrollment-instructions">
+        <h2>📖 Enrollment Instructions</h2>
+        
+        <div class="platform-tabs">
+            <button class="platform-btn active" onclick="showPlatform('android')">
+                🤖 Android (ATAK)
+            </button>
+            <button class="platform-btn" onclick="showPlatform('ios')">
+                🍎 iOS (iTAK)
+            </button>
+        </div>
+        
+        <div id="android-instructions" class="platform-instructions active">
+            <h3>ATAK (Android) Setup</h3>
+            <ol>
+                <li>Download <strong>ATAK</strong> from Google Play Store</li>
+                <li>Scan the QR code above to download enrollment package</li>
+                <li>Import the package into ATAK</li>
+                <li>Your device will automatically enroll and receive a certificate</li>
+            </ol>
+        </div>
+        
+        <div id="ios-instructions" class="platform-instructions">
+            <h3>iTAK (iOS) Setup</h3>
+            <ol>
+                <li>Download <strong>iTAK</strong> from Apple App Store</li>
+                <li>Scan the QR code above to download enrollment package</li>
+                <li>Open the package with iTAK</li>
+                <li>Your device will automatically enroll and receive a certificate</li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="action-section">
+        <a href="/api/tokens/{{ token.username }}/package" class="btn btn-primary" download>
+            📦 Download Enrollment Package
+        </a>
+        {% if not token.revoked and not token.enrolled %}
+        <button onclick="revokeToken()" class="btn btn-danger">
+            🚫 Revoke Token
+        </button>
+        {% endif %}
+        <a href="/" class="btn btn-secondary">
+            ⬅️ Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showPlatform(platform) {
+    document.querySelectorAll('.platform-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    document.querySelectorAll('.platform-instructions').forEach(inst => {
+        inst.classList.remove('active');
+    });
+    document.getElementById(`${platform}-instructions`).classList.add('active');
+}
+
+function revokeToken() {
+    if (!confirm('Are you sure you want to revoke this token?')) return;
+    
+    fetch('/api/tokens/{{ token.username }}/revoke', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Token revoked successfully');
+                location.reload();
+            } else {
+                alert('Error revoking token');
+            }
+        });
+}
+</script>
+{% endblock %}
