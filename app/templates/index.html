@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>Token Management Dashboard</h1>
+    
+    <div class="stats-grid">
+        <div class="stat-card stat-active">
+            <div class="stat-icon">⏰</div>
+            <div class="stat-info">
+                <h3>{{ stats.active }}</h3>
+                <p>Active Tokens</p>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-enrolled">
+            <div class="stat-icon">✅</div>
+            <div class="stat-info">
+                <h3>{{ stats.enrolled }}</h3>
+                <p>Enrolled Users</p>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-expired">
+            <div class="stat-icon">⌛</div>
+            <div class="stat-info">
+                <h3>{{ stats.expired }}</h3>
+                <p>Expired Tokens</p>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-revoked">
+            <div class="stat-icon">🚫</div>
+            <div class="stat-info">
+                <h3>{{ stats.revoked }}</h3>
+                <p>Revoked</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-section">
+        <a href="/create" class="btn btn-primary btn-lg">
+            ➕ Create New User
+        </a>
+    </div>
+
+    <div class="token-list-section">
+        <h2>Recent Tokens</h2>
+        <div class="filter-tabs">
+            <button class="tab-btn active" onclick="filterTokens('all')">All</button>
+            <button class="tab-btn" onclick="filterTokens('active')">Active</button>
+            <button class="tab-btn" onclick="filterTokens('enrolled')">Enrolled</button>
+        </div>
+        
+        <div id="token-list">
+            <p class="loading">Loading tokens...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentFilter = 'all';
+
+document.addEventListener('DOMContentLoaded', () => {
+    filterTokens('all');
+    setInterval(() => filterTokens(currentFilter), 30000);
+});
+
+function filterTokens(filter) {
+    currentFilter = filter;
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event?.target?.classList.add('active');
+    
+    fetch(`/api/tokens?filter=${filter}`)
+        .then(res => res.json())
+        .then(data => {
+            displayTokens(data.tokens);
+        });
+}
+
+function displayTokens(tokens) {
+    const container = document.getElementById('token-list');
+    
+    if (tokens.length === 0) {
+        container.innerHTML = '<p class="no-data">No tokens found</p>';
+        return;
+    }
+    
+    container.innerHTML = tokens.map(token => `
+        <div class="token-card ${token.is_expired ? 'expired' : ''} ${token.enrolled ? 'enrolled' : ''}">
+            <div class="token-header">
+                <h3>👤 ${token.username}</h3>
+                <span class="badge ${token.is_expired ? 'badge-danger' : token.enrolled ? 'badge-success' : 'badge-warning'}">
+                    ${token.is_expired ? 'Expired' : token.enrolled ? 'Enrolled' : 'Active'}
+                </span>
+            </div>
+            <div class="token-body">
+                <p><strong>Group:</strong> ${token.group_name}</p>
+                <p><strong>Created:</strong> ${new Date(token.created_at).toLocaleString()}</p>
+                <p><strong>Expires:</strong> ${new Date(token.expires_at).toLocaleString()}</p>
+                ${!token.is_expired && !token.enrolled ? `<p><strong>Time Left:</strong> ${token.time_remaining}</p>` : ''}
+            </div>
+            <div class="token-actions">
+                <a href="/user/${token.username}" class="btn btn-sm btn-info">
+                    📱 View QR
+                </a>
+                <a href="/api/tokens/${token.username}/package" class="btn btn-sm btn-primary">
+                    📦 Package
+                </a>
+                ${!token.revoked ? `
+                    <button onclick="revokeToken('${token.username}')" class="btn btn-sm btn-danger">
+                        🚫 Revoke
+                    </button>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function revokeToken(username) {
+    if (!confirm(`Revoke token for ${username}?`)) return;
+    
+    fetch(`/api/tokens/${username}/revoke`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Token revoked successfully');
+                filterTokens(currentFilter);
+            } else {
+                alert('Error revoking token');
+            }
+        });
+}
+</script>
+{% endblock %}
