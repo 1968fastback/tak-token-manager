@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Skull outline -->
+  <path d="M12 2C6.5 2 2 6.5 2 12c0 3.2 1.5 6 4 8v3c0 .6.4 1 1 1h2c.6 0 1-.4 1-1v-2h4v2c0 .6.4 1 1 1h2c.6 0 1-.4 1-1v-3c2.5-2 4-4.8 4-8 0-5.5-4.5-10-10-10z"/>
+  <!-- Left eye -->
+  <circle cx="9" cy="11" r="1.5"/>
+  <!-- Right eye -->
+  <circle cx="15" cy="11" r="1.5"/>
+  <!-- Nose -->
+  <path d="M11 14h2v2h-2z"/>
+  <!-- Teeth -->
+  <line x1="8" y1="17" x2="8" y2="19"/>
+  <line x1="10" y1="17" x2="10" y2="19"/>
+  <line x1="12" y1="17" x2="12" y2="19"/>
+  <line x1="14" y1="17" x2="14" y2="19"/>
+  <line x1="16" y1="17" x2="16" y2="19"/>
+</svg>

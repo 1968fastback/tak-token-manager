@@ -29,6 +29,7 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       - token-packages:/app/packages
+      - ./app:/app/app:ro
     depends_on:
       - db
     networks:
